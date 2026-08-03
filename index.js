@@ -65,26 +65,38 @@ function getOrCreateSession(chatId, customInstruction = null) {
     return sessionData;
 }
 
-// Ekstraksi teks dari pesan Baileys
+// Ekstraksi teks dari pesan Baileys (Mendukung pesan grup, ephemeral & viewOnce)
 function getMessageText(msg) {
-    const message = msg.message;
+    let message = msg?.message;
     if (!message) return '';
-    return message.conversation ||
-        message.extendedTextMessage?.text ||
-        message.imageMessage?.caption ||
-        message.videoMessage?.caption ||
-        message.documentMessage?.caption || '';
+
+    // Buka wrapper pesan grup (ephemeral, viewOnce, dll)
+    if (message.ephemeralMessage) message = message.ephemeralMessage.message;
+    if (message.viewOnceMessage) message = message.viewOnceMessage.message;
+    if (message.viewOnceMessageV2) message = message.viewOnceMessageV2.message;
+    if (message.documentWithCaptionMessage) message = message.documentWithCaptionMessage.message;
+
+    return message?.conversation ||
+        message?.extendedTextMessage?.text ||
+        message?.imageMessage?.caption ||
+        message?.videoMessage?.caption ||
+        message?.documentMessage?.caption || '';
 }
 
-// Deteksi MIME type media
+// Deteksi MIME type media (Mendukung wrapper grup)
 function getMediaMimeType(msg) {
-    const m = msg.message;
+    let m = msg?.message;
     if (!m) return null;
-    return m.imageMessage?.mimetype ||
-        m.audioMessage?.mimetype ||
-        m.videoMessage?.mimetype ||
-        m.documentMessage?.mimetype ||
-        m.stickerMessage?.mimetype || null;
+
+    if (m.ephemeralMessage) m = m.ephemeralMessage.message;
+    if (m.viewOnceMessage) m = m.viewOnceMessage.message;
+    if (m.viewOnceMessageV2) m = m.viewOnceMessageV2.message;
+
+    return m?.imageMessage?.mimetype ||
+        m?.audioMessage?.mimetype ||
+        m?.videoMessage?.mimetype ||
+        m?.documentMessage?.mimetype ||
+        m?.stickerMessage?.mimetype || null;
 }
 
 process.on('SIGTERM', () => {
