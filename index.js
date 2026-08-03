@@ -40,12 +40,19 @@ if (!apiKey || apiKey === 'your_gemini_api_key_here') {
 }
 
 // Konfigurasi Model & System Instruction
-const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
 const defaultSystemInstruction = process.env.SYSTEM_INSTRUCTION || 
     "Kamu adalah asisten cerdas WhatsApp yang ramah, membantu, serta merespon dengan cepat dan tepat dalam Bahasa Indonesia.";
 
 // Inisialisasi Gemini API
 const genAI = new GoogleGenerativeAI(apiKey);
+
+// Model fallback jika terjadi rate limit 429
+const FALLBACK_MODELS = [
+    modelName,
+    "gemini-2.0-flash-lite",
+    "gemini-2.5-flash"
+];
 
 // Sesi percakapan & persona per chat ID (Memory)
 const userSessions = new Map();
@@ -63,6 +70,55 @@ function getOrCreateSession(chatId, customInstruction = null) {
 
     userSessions.set(chatId, sessionData);
     return sessionData;
+}
+
+// Fungsi generate respon dengan otomatis berpindah model jika terkena limit kuota (429)
+async function generateTextWithFallback(prompt, mediaBuffer, mimeType, sessionData) {
+    let lastError = null;
+
+    for (const currentModelName of FALLBACK_MODELS) {
+        try {
+            if (mediaBuffer && mimeType) {
+                const tempModel = genAI.getGenerativeModel({
+                    model: currentModelName,
+                    systemInstruction: sessionData.customRole || defaultSystemInstruction
+                });
+                const generativePart = {
+                    inlineData: {
+                        data: mediaBuffer.toString('base64'),
+                        mimeType: mimeType
+                    }
+                };
+                const contents = [prompt || 'Jelaskan atau analisis media ini secara detail.', generativePart];
+                const result = await tempModel.generateContent(contents);
+                return result.response.text();
+            } else {
+                try {
+                    const result = await sessionData.chatSession.sendMessage(prompt);
+                    return result.response.text();
+                } catch (chatErr) {
+                    if (chatErr.message?.includes('429') || chatErr.status === 429) {
+                        console.log(`⚠️ Quota 429 pada model utama, mencoba model fallback '${currentModelName}'...`);
+                        const fallbackModel = genAI.getGenerativeModel({
+                            model: currentModelName,
+                            systemInstruction: sessionData.customRole || defaultSystemInstruction
+                        });
+                        const result = await fallbackModel.generateContent(prompt);
+                        return result.response.text();
+                    }
+                    throw chatErr;
+                }
+            }
+        } catch (err) {
+            lastError = err;
+            if (err.message?.includes('429') || err.status === 429) {
+                console.log(`⚠️ Model '${currentModelName}' kuota habis (429), mencoba model berikutnya...`);
+                continue;
+            }
+            throw err;
+        }
+    }
+    throw lastError;
 }
 
 // Ekstraksi teks dari pesan Baileys (Mendukung pesan grup, ephemeral & viewOnce)
@@ -319,22 +375,7 @@ _Gunakan Chat ID di atas pada \`ALLOWED_CHATS\` di file \`.env\` jika ingin meng
                     sessionData = getOrCreateSession(chatId);
                 }
 
-                let responseText = '';
-
-                if (mediaBuffer && mimeType) {
-                    const generativePart = {
-                        inlineData: {
-                            data: mediaBuffer.toString('base64'),
-                            mimeType: mimeType
-                        }
-                    };
-                    const contents = [prompt || 'Jelaskan atau analisis media ini secara detail.', generativePart];
-                    const result = await sessionData.model.generateContent(contents);
-                    responseText = result.response.text();
-                } else {
-                    const result = await sessionData.chatSession.sendMessage(prompt);
-                    responseText = result.response.text();
-                }
+                const responseText = await generateTextWithFallback(prompt, mediaBuffer, mimeType, sessionData);
 
                 await sock.sendMessage(chatId, { text: responseText }, { quoted: msg });
             } catch (error) {
