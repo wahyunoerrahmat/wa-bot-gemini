@@ -77,7 +77,7 @@ function mediaToGenerativePart(media) {
     };
 }
 
-// Inisialisasi WhatsApp Client
+// Inisialisasi WhatsApp Client (Dioptimalkan untuk hemat RAM < 200MB di Cloud Free Tier)
 const puppeteerOptions = {
     headless: true,
     args: [
@@ -87,7 +87,34 @@ const puppeteerOptions = {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--single-process',
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-component-update',
+        '--disable-background-networking',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-breakpad',
+        '--disable-client-side-phishing-detection',
+        '--disable-default-apps',
+        '--disable-dev-tools',
+        '--disable-domain-reliability',
+        '--disable-features=AudioServiceOutOfProcess',
+        '--disable-hang-monitor',
+        '--disable-ipc-flooding-protection',
+        '--disable-notifications',
+        '--disable-popup-blocking',
+        '--disable-print-preview',
+        '--disable-prompt-on-repost',
+        '--disable-renderer-backgrounding',
+        '--disable-speech-api',
+        '--disable-sync',
+        '--hide-scrollbars',
+        '--metrics-recording-only',
+        '--mute-audio',
+        '--no-default-browser-check',
+        '--no-pings',
+        '--js-flags="--max-old-space-size=128"'
     ]
 };
 
