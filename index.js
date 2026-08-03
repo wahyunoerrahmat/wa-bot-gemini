@@ -2,8 +2,20 @@ import whatsappweb from 'whatsapp-web.js';
 import qrcode from 'qrcode-terminal';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import dotenv from 'dotenv';
+import http from 'http';
 
 dotenv.config();
+
+// Server HTTP ringan untuk Health Check Port Binding (Dibutuhkan oleh Render / Koyeb)
+const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end('<h1>🤖 Bot WhatsApp Gemini Siap Beroperasi!</h1><p>Status: Aktif & Running 24/7 di Cloud</p>');
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🌐 Health-check HTTP server mendengarkan di 0.0.0.0:${PORT}`);
+});
 
 // Penanganan global error agar bot tidak crash secara tak terduga
 process.on('uncaughtException', (err) => {
@@ -87,34 +99,20 @@ const puppeteerOptions = {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
         '--disable-gpu',
         '--disable-extensions',
         '--disable-component-update',
         '--disable-background-networking',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-breakpad',
-        '--disable-client-side-phishing-detection',
         '--disable-default-apps',
         '--disable-dev-tools',
-        '--disable-domain-reliability',
-        '--disable-features=AudioServiceOutOfProcess',
-        '--disable-hang-monitor',
-        '--disable-ipc-flooding-protection',
         '--disable-notifications',
         '--disable-popup-blocking',
-        '--disable-print-preview',
-        '--disable-prompt-on-repost',
-        '--disable-renderer-backgrounding',
         '--disable-speech-api',
         '--disable-sync',
         '--hide-scrollbars',
-        '--metrics-recording-only',
         '--mute-audio',
         '--no-default-browser-check',
-        '--no-pings',
-        '--js-flags="--max-old-space-size=128"'
+        '--no-pings'
     ]
 };
 
