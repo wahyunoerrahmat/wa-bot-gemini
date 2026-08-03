@@ -175,6 +175,7 @@ async function startBot() {
             const isGroup = chatId.endsWith('@g.us');
             const senderId = msg.key.participant || chatId;
             const prefix = '!gemini';
+            let body = getMessageText(msg).trim();
             console.log(`📩 Pesan masuk dari ${chatId} [Sender: ${senderId}] [Grup: ${isGroup}]: "${body}"`);
 
             // Perintah !id / !myid
