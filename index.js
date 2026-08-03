@@ -87,9 +87,26 @@ function getMediaMimeType(msg) {
         m.stickerMessage?.mimetype || null;
 }
 
+process.on('SIGTERM', () => {
+    console.log('🛑 Menerima sinyal SIGTERM, menutup aplikasi secara halus...');
+    server.close(() => process.exit(0));
+});
+
+process.on('SIGINT', () => {
+    console.log('🛑 Menerima sinyal SIGINT, menutup aplikasi...');
+    server.close(() => process.exit(0));
+});
+
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('./baileys_auth');
-    const { version } = await fetchLatestBaileysVersion();
+    
+    let version = [2, 3000, 1015901307];
+    try {
+        const v = await fetchLatestBaileysVersion();
+        if (v && v.version) version = v.version;
+    } catch (err) {
+        console.log('Menggunakan versi Baileys fallback:', version);
+    }
 
     const sock = makeWASocket({
         version,
