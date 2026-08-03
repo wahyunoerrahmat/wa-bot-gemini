@@ -175,7 +175,7 @@ async function startBot() {
             const isGroup = chatId.endsWith('@g.us');
             const senderId = msg.key.participant || chatId;
             const prefix = '!gemini';
-            let body = getMessageText(msg).trim();
+            console.log(`📩 Pesan masuk dari ${chatId} [Sender: ${senderId}] [Grup: ${isGroup}]: "${body}"`);
 
             // Perintah !id / !myid
             if (body.toLowerCase() === '!id' || body.toLowerCase() === '!myid') {
@@ -202,7 +202,10 @@ _Gunakan Chat ID di atas pada \`ALLOWED_CHATS\` di file \`.env\` jika ingin meng
                 const isAllowed = allowedChats.some(id => 
                     chatId.includes(id) || senderId.includes(id)
                 );
-                if (!isAllowed) continue;
+                if (!isAllowed) {
+                    console.log(`🚫 Pesan diabaikan karena chat ${chatId} tidak ada di whitelist.`);
+                    continue;
+                }
             }
 
             // Handling Perintah Khusus (!help, !menu, !reset, !clear, !role, !model)
@@ -211,9 +214,8 @@ _Gunakan Chat ID di atas pada \`ALLOWED_CHATS\` di file \`.env\` jika ingin meng
 `🤖 *Fitur & Perintah WhatsApp Bot Gemini*
 
 1️⃣ *Tanya Jawab Teks*
-- *Private Chat:* Kirim pertanyaan langsung atau sertakan \`!gemini <pertanyaan>\`.
-- *Grup:* Gunakan prefix \`!gemini <pertanyaan>\`.
-  _Contoh:_ \`!gemini Buatkan resep nasi goreng simpel\`
+- Kirim pertanyaan langsung di chat pribadi maupun di grup.
+  _Contoh:_ \`Buatkan resep nasi goreng simpel\` (atau dengan prefix \`!gemini\`).
 
 2️⃣ *Analisis Gambar & Media (Multimodal)*
 - Kirim foto/gambar/suara dengan caption \`!gemini <pertanyaan>\`.
@@ -261,15 +263,10 @@ _Gunakan Chat ID di atas pada \`ALLOWED_CHATS\` di file \`.env\` jika ingin meng
                 continue;
             }
 
-            // Filter pesan grup & private
+            // Respon langsung tanpa wajib prefix !gemini (berlaku di grup maupun chat pribadi)
             let prompt = body;
-            if (isGroup) {
-                if (!prompt.startsWith(prefix)) continue;
-                prompt = prompt.slice(prefix.length).trim();
-            } else {
-                if (prompt.startsWith(prefix)) {
-                    prompt = prompt.slice(prefix.length).trim();
-                }
+            if (prompt.toLowerCase().startsWith('!gemini')) {
+                prompt = prompt.slice(7).trim();
             }
 
             // Cek Media (Pesan langsung atau quoted message)
